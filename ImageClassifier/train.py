@@ -22,32 +22,12 @@ data_dir = '/home/workspace/ImageClassifier/flowers'
 trainloader, validloader, testloader = transform_data(data_dir)
 
 ## Imports Model and defines hiddent layers
-#from make_model import create_model
-#architecture = "vgg19"
-#hidden_layers = [400]
-
-#model, class_to_idx = create_model(architecture, hidden_layers, pretrained=True)
-
-#if hasattr(model, 'features'):
-#    print("The model is pretrained.")
-#else:
-#    print("The model is not pretrained.")
-
- ## Imports Other Model and defines hiddent layers
-#from make_model_other import create_model_other
-
-#architecture = "alexnet"
-#hidden_layers = [400]
-
-#model, class_to_idx = create_model_other(architecture, hidden_layers, pretrained=True)
-
-
-## Imports Model and defines hiddent layers
-from make_model_other_2 import create_model
+from make_model import create_model
+#archtiecture can be alexnet or vgg16
 architecture = "alexnet"
-#hidden_layers = [401]
+hidden_layers = [400]
 
-model, class_to_idx = create_model(architecture, [4096], pretrained=True)
+model, class_to_idx = create_model(architecture, hidden_layers, pretrained=True)
 
 
 #Begins Training Model
