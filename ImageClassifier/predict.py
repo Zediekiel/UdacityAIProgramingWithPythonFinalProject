@@ -14,25 +14,31 @@ from PIL import Image
 import numpy as np
 #Import json file for category labels for images
 import json
-
+#Imports argument parser
+import argparse
 
 #Load Checkpoint
 state_dict = torch.load('checkpoint.pth')
 print(state_dict.keys())
 
-def load_checkpoint(filepath):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def load_checkpoint(filepath, device_type = None):
+    if device_type is not None:
+        device = torch.device(device_type)
+    else: 
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     checkpoint = torch.load(filepath)
     model = checkpoint['model']
-    model.load_state_dict(checkpoint['state_dict'])
+    #model.load_state_dict(checkpoint['state_dict'])
     model.class_to_idx = checkpoint['class_to_idx']
     return model
 
 # Process a PIL image for use in a PyTorch model
-def process_image(image):
+def process_image(image_path):
     ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
         returns an Numpy array
     '''
+    image = Image.open(image_path)
+    
     width, height = image.size
     
     aspect_ratio = width/height
@@ -54,10 +60,6 @@ def process_image(image):
     # Transpose the image array
     np_image = np_image.transpose((2, 0, 1))
     return np_image
-
-#Isolates image to be selected for prediction
-image_dir = 'flowers/test/1/image_06743.jpg'
-img = Image.open(image_dir)
 
 #Predict top K Classes
 def predict(image_path, model, topk=5, load_cat_to_name=False, device_type=None):
@@ -111,5 +113,27 @@ def predict(image_path, model, topk=5, load_cat_to_name=False, device_type=None)
         
         return output
 
-result = predict(img, load_checkpoint('checkpoint.pth').to('cuda'), load_cat_to_name=True, device_type='cuda')
-print(result)
+   
+#Define aruments
+parser = argparse.ArgumentParser(description='Image Classifier Prediction')
+parser.add_argument('image_path', type=str, help='Path to the image')
+parser.add_argument('model_path', type=str, help='Path to the model checkpoint')
+parser.add_argument('--topk', type=int, default=5, help='Top K most likely classes (default: 5)')
+parser.add_argument('--category_names', type=str, default='cat_to_name.json', help='Path to the category names mapping file (default: cat_to_name.json)')
+parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'], help='Device to use for prediction (default: cuda)')
+args = parser.parse_args()
+   
+#Loads model    
+model = load_checkpoint(args.model_path, device_type=args.device)
+    
+# Call the predict function
+predictions = predict(args.image_path, model, args.topk, load_cat_to_name=True, device_type=args.device)
+
+# Print the top K classes
+for label, probability in predictions:
+    print(f"Class: {label}, Probability: {probability}")
+    
+#Example Command Line Code.  Remove '#'   
+#python predict.py 'flowers/test/1/image_06743.jpg' 'checkpoint.pth' --topk 5 --category_names 'home/workspace/ImageClassifier/cat_to_name.json' --device cpu
+
+ 
