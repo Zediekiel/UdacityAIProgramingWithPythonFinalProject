@@ -14,6 +14,7 @@ from PIL import Image
 import numpy as np
 #Import json file for category labels for images
 import json
+import os
 #Imports argument parser
 import argparse
 
@@ -62,16 +63,19 @@ def process_image(image_path):
     return np_image
 
 #Predict top K Classes
-def predict(image_path, model, topk=5, load_cat_to_name=False, device_type=None):
+def predict(image_path, model, topk=5, category_names='cat_to_name.json', device_type=None):
     ''' Predict the class (or classes) of an image using a trained deep learning model.
     '''
     
-    if load_cat_to_name:
-        # Load the mapping of class indices to class names from cat_to_name.json  
-        with open('cat_to_name.json', 'r') as f:
-            cat_to_name = json.load(f)
-    else:
-        cat_to_name = None
+    # Get the absolute path of the script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Construct the path to the cat_to_name.json file
+    category_names_path = os.path.join(script_dir, args.category_names)
+    
+    # Load the mapping of class indices to class names from the input .json file  
+    with open(category_names, 'r') as f:
+        cat_to_name = json.load(f)
     
     processed_image = process_image(image_path)
     
@@ -101,18 +105,22 @@ def predict(image_path, model, topk=5, load_cat_to_name=False, device_type=None)
         top_probabilities = top_probabilities.squeeze().tolist()
         top_classes = top_classes.squeeze().tolist()
         
+        # Reverse the class-to-idx dictionary to create idx_to_class dictionary
+        idx_to_class = {v: k for k, v in model.class_to_idx.items()}
+        
+        # Convert the predicted indices to class names
+        predicted_classes = [idx_to_class[idx] for idx in top_classes]
+        
         # Convert the indices to class labels
         if cat_to_name is not None:
-            idx_to_class = {value: key for key, value in model.class_to_idx.items()}
             top_labels = [cat_to_name[idx_to_class[idx]] for idx in top_classes]
         else:
-            top_labels = top_classes
+            top_labels = predicted_classes
         
         # Create a paired list of top labels and top probabilities
         output = list(zip(top_labels, top_probabilities))
         
         return output
-
    
 #Define aruments
 parser = argparse.ArgumentParser(description='Image Classifier Prediction')
@@ -127,13 +135,13 @@ args = parser.parse_args()
 model = load_checkpoint(args.model_path, device_type=args.device)
     
 # Call the predict function
-predictions = predict(args.image_path, model, args.topk, load_cat_to_name=True, device_type=args.device)
+predictions = predict(args.image_path, model, args.topk, args.category_names, device_type=args.device)
 
 # Print the top K classes
 for label, probability in predictions:
     print(f"Class: {label}, Probability: {probability}")
     
 #Example Command Line Code.  Remove '#'   
-#python predict.py 'flowers/test/1/image_06743.jpg' 'checkpoint.pth' --topk 5 --category_names 'home/workspace/ImageClassifier/cat_to_name.json' --device cpu
+#python predict.py 'flowers/test/1/image_06743.jpg' 'checkpoint.pth' --topk 5 --category_names 'cat_to_name.json' --device cpu
 
  
