@@ -75,7 +75,7 @@ def predict(image_path, model, topk=5, category_names='cat_to_name.json', device
     
     # Load the mapping of class indices to class names from the input .json file  
     with open(category_names, 'r') as f:
-        cat_to_name = json.load(f)
+        cat_to_name = json.load(f, strict = False)
     
     processed_image = process_image(image_path)
     
